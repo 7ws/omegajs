@@ -12,6 +12,7 @@ function _class(body) {
 		return body.init.apply(this, arguments);
 	}
 
+	body.constructor = constructor;
 	constructor.prototype = body;
 	return constructor;
 }
@@ -22,6 +23,10 @@ var Omega = _class({
 	init: function (object) {
 		if (object.__omega__)
 			return object;
+
+		// being called instead of instantiated
+		if (this.constructor !== Omega)
+			return new Omega(object);
 	},
 
 	toString: function () { return '[object Omega]' }
