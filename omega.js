@@ -154,6 +154,7 @@ var dom = Omega.DOM = {
 		ID: /#[\w-]+/,
 		CLASS: /\.[\w-]+/g,
 		ATTR: /\[([\w-]+)(?:\s*([~*^$]?=)\s*([^\]]+))?\]/g,
+		PSEUDO: /:([\w-]+)(?:\(([^)]+)\))?/g,
 
 		init: function (selector) {
 			this.tag_name = (selector.match(this.TAG) || ['*'])[0];
@@ -161,10 +162,14 @@ var dom = Omega.DOM = {
 			this.classes = _array(selector.match(this.CLASS) || []);
 
 			this.attributes = [];
-			var m; while(m = this.ATTR.exec(selector))
+			var m; while (m = this.ATTR.exec(selector))
 				this.attributes.push({
 					name: m[1], op: m[2], value: m[3] && _strip(m[3], '\\s"')
 				});
+
+			this.pseudos = [];
+			var m; while (m = this.PSEUDO.exec(selector))
+				this.pseudos.push({ name: m[1], param: m[2] });
 		}
 	}),
 
@@ -199,6 +204,12 @@ var dom = Omega.DOM = {
 				)
 					return false;
 
+		// pseudo classes filtering
+		if (token.pseudos.length)
+			for (var i = -1, pseudo; pseudo = token.pseudos[++i];)
+				if (!dom._pseudo_match[pseudo.name](dom_element, pseudo.param))
+					return false;
+
 		return true;
 	},
 
@@ -219,6 +230,30 @@ var dom = Omega.DOM = {
 		},
 		'$=': function (actual_value, test) {  // ends with
 			return actual_value.slice(-test.length) === test;
+		}
+	},
+
+	_pseudo_match: {
+		'first-child': function (element) {
+			var first_child = element.parentNode.firstChild;
+			while (first_child.nodeType !== 1)
+				first_child = first_child.nextSibling;
+
+			return element === first_child;
+		},
+
+		'last-child': function (element) {
+			var last_child = element.parentNode.lastChild;
+			while (last_child.nodeType !== 1)
+				last_child = last_child.previousSibling;
+
+			return element === last_child;
+		},
+
+		'only-child': function (element) {
+			return (
+				dom._pseudo_match['first-child'](element) &&
+				dom._pseudo_match['last-child'](element));
 		}
 	}
 };
