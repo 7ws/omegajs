@@ -50,7 +50,7 @@ var Omega = _class({
 	__omega__: true,
 
 	init: function (object) {
-		if (object.__omega__)
+		if (object && object.__omega__)
 			return object;
 
 		// being called instead of instantiated
