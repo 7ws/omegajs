@@ -35,9 +35,10 @@ function _map(array, callback) {
 	return results;
 }
 
-function _trim(string) {
-	// remove trailing spaces from a string
-	return string.replace(/^\s+|\s+$/g, '');
+function _strip(string, target) {
+	// remove trailing spaces or specified character from a string
+	if (!target) target = '\\s';
+	return string.replace(new RegExp('^['+target+']+|['+target+']+$', 'g'), '');
 }
 
 function _merge(array, extension) {
@@ -99,8 +100,8 @@ var dom = Omega.DOM = {
 
 			// split and trim the selectors (if more than one)
 			var selectors = _map(
-				_trim(selector).split(','),
-				function (selector) { return _trim(selector) });
+				_strip(selector).split(','),
+				function (selector) { return _strip(selector) });
 
 			// process many selectors
 			if (selectors.length > 1)
@@ -152,11 +153,18 @@ var dom = Omega.DOM = {
 		TAG: /^[a-z]+/i,
 		ID: /#[\w-]+/,
 		CLASS: /\.[\w-]+/g,
+		ATTR: /\[([\w-]+)(?:\s*([~*^$]?=)\s*([^\]]+))?\]/g,
 
 		init: function (selector) {
 			this.tag_name = (selector.match(this.TAG) || ['*'])[0];
 			this.id = (selector.match(this.ID) || [null])[0];
 			this.classes = _array(selector.match(this.CLASS) || []);
+
+			this.attributes = [];
+			var m; while(m = this.ATTR.exec(selector))
+				this.attributes.push({
+					name: m[1], op: m[2], value: m[3] && _strip(m[3], '\\s"')
+				});
 		}
 	}),
 
@@ -176,7 +184,42 @@ var dom = Omega.DOM = {
 					return false;
 		}
 
+		// attribute filtering
+		if (token.attributes.length)
+			for (var i = -1, attr; attr = token.attributes[++i];)
+				if (
+					// element doesn't have such attribute
+					!dom_element.hasAttribute(attr.name)
+
+					// element has attribute but it doesn't match
+					|| attr.op &&
+						!dom._attr_match[attr.op](
+							dom_element.getAttribute(attr.name),
+							_strip(attr.value, ' "'))
+				)
+					return false;
+
 		return true;
+	},
+
+	_attr_match: {
+		// collection of attribute matchers
+
+		'=': function (actual_value, test) {  // matches exactly
+			return actual_value === test;
+		},
+		'*=': function (actual_value, test) {  // contains
+			return actual_value.indexOf(test) !== -1;
+		},
+		'~=': function (actual_value, test) {  // contains word
+			return (' ' + actual_value + ' ').indexOf(' ' + test + ' ') !== -1;
+		},
+		'^=': function (actual_value, test) {  // starts with
+			return !actual_value.indexOf(test);
+		},
+		'$=': function (actual_value, test) {  // ends with
+			return actual_value.slice(-test.length) === test;
+		}
 	}
 };
 
