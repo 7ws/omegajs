@@ -102,19 +102,11 @@ var dom = Omega.DOM = {
 				_trim(selector).split(','),
 				function (selector) { return _trim(selector) });
 
-			this.results = [];
-
 			// process many selectors
-			if (selectors.length > 1) {
+			if (selectors.length > 1)
 				for (var i = -1; selectors[++i];)
 					_merge(results,
 						new dom.Query(selectors[i], context).results);
-
-				// clean the result set to avoid duplicates
-				for (var i = -1; results[++i];)
-					if (this.results.indexOf(results[i]) === -1)
-						this.results.push(results[i]);
-			}
 
 			// process a single selector
 			else {
@@ -139,8 +131,15 @@ var dom = Omega.DOM = {
 					context = elements;
 				}
 
-				this.results = elements;
+				results = elements;
 			}
+
+			this.results = [];
+
+			// clean the result set to avoid duplicates
+			for (var i = -1; results[++i];)
+				if (this.results.indexOf(results[i]) === -1)
+					this.results.push(results[i]);
 
 			// records the spent time
 			this.time = new Date - start_time;
