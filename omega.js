@@ -33,9 +33,14 @@ var Omega = _class({
 		// being called instead of instantiated
 		if (this.constructor !== Omega)
 			return new Omega(object);
+
+		this.length = 0;
 	},
 
-	toString: function () { return '[object Omega]' }
+	toString: function () { return '[object Omega]' },
+
+	// Trick to make Consoles display an Omega object as an array
+	splice: function () {}
 });
 
 // Expose Omega main constructor to window scope
