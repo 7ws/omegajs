@@ -49,20 +49,20 @@ var Omega = _class({
 	// identifies Omega objects
 	__omega__: true,
 
-	init: function (object) {
+	init: function (object, context) {
 		if (object && object.__omega__)
 			return object;
 
 		// being called instead of instantiated
 		if (this.constructor !== Omega)
-			return new Omega(object);
+			return new Omega(object, context);
 
 		// "initialize" the object as an array
 		this.length = 0;
 
 		// fill the object with a Omega.DOM.QuerySet object
 		if (typeof object === 'string')
-			_merge(this, new dom.Query(object).results);
+			_merge(this, new dom.Query(object, context).results);
 
 		// wrap a dom element or the Window object
 		else
@@ -115,7 +115,7 @@ var dom = Omega.DOM = {
 					.replace(/([>+~]) /g, '$1')
 					.split(' ');
 
-				context = [document];
+				context = new Omega(context || document);
 
 				while (selector.length) {
 					var token = new dom.QueryToken(selector.shift());
