@@ -63,6 +63,11 @@ var Omega = _class({
 		// fill the object with a Omega.DOM.QuerySet object
 		if (typeof object === 'string')
 			_merge(this, new dom.Query(object).results);
+
+		// wrap a dom element or the Window object
+		else
+		if (object.nodeType && object.nodeName || object === window)
+			_merge(this, [object]);
 	},
 
 	toString: function () { return '[object Omega]' },
