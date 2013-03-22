@@ -5,19 +5,25 @@
 */
 
 function _class(body) {
-	// A simple fake constructor factory.
+	// a simple fake constructor factory.
+
 	if (!body) body = {};
 
-	function constructor() {
+	// the real thing
+	function init() {
 		return body.init.apply(this, arguments);
 	}
 
-	body.constructor = constructor;
-	constructor.prototype = body;
-	return constructor;
+	// forces instances' .constructor to be init
+	body.constructor = init;
+
+	init.prototype = body;
+
+	return init;
 }
 
 var Omega = _class({
+	// identifies Omega objects
 	__omega__: true,
 
 	init: function (object) {
