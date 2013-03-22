@@ -43,6 +43,13 @@ var Omega = _class({
 	splice: function () {}
 });
 
+Omega.extend = function (extension) {
+	// a shortcut to extend the Omega prototype
+	for (var key in extension)
+		if (Object.prototype.hasOwnProperty.call(extension, key))
+			Omega.prototype[key] = extension[key];
+};
+
 // Expose Omega main constructor to window scope
 if (typeof window !== 'undefined') window.Omega = Omega;
 
