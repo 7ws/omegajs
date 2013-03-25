@@ -53,10 +53,6 @@ describe('CSS Selector Parser (Omega.DOM.parse_selector)', function () {
 		expect(parts[0].pseudos.length).toBe(0);
 	});
 
-	it('>>  div ,div, div  ,  div  , ', function () {
-
-	});
-
 	it('>> #content',
 	function () {
 		expect(parts[0].rel).toBe(' ');
@@ -224,6 +220,19 @@ describe('CSS Selector Parser (Omega.DOM.parse_selector)', function () {
 		expect(parts[3].classes[0]).toBe('error_message');
 		expect(parts[3].attributes.length).toBe(0);
 		expect(parts[3].pseudos.length).toBe(0);
+	});
+
+	it('>> [attr $= "$*+[]^~ " ]',
+	function () {
+		expect(parts[0].rel).toBe(' ');
+		expect(parts[0].tag_name).toBe('');
+		expect(parts[0].id).toBe('');
+		expect(parts[0].classes.length).toBe(0);
+		expect(parts[0].attributes.length).toBe(1);
+		expect(parts[0].attributes[0].name).toBe('attr');
+		expect(parts[0].attributes[0].op).toBe('$=');
+		expect(parts[0].attributes[0].value).toBe('$*+[]^~ ');
+		expect(parts[0].pseudos.length).toBe(0);
 	});
 });
 
