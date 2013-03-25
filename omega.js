@@ -187,7 +187,6 @@ var dom = Omega.DOM = {
 				// breaks into a new part
 				if (curr_token !== 'attr' && part.str) {
 					p++;
-					console.log(g, p, part.str);
 					curr_token = undefined;
 				}
 
@@ -276,7 +275,10 @@ var dom = Omega.DOM = {
 		// clean the groups compile the complete selectors strings
 		for (g = -1; group = groups[++g];) {
 			for (p = -1; part = group.parts[++p];)
-				group.str += (part.rel + ' ' + part.str + ' ');
+				if (part.str)
+					group.str += (part.rel + ' ' + part.str + ' ');
+				else
+					group.parts.splice(p, 1);
 
 			group.str = _strip(group.str).replace(/\s{2,}/g, ' ');
 		}

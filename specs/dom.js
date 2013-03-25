@@ -19,6 +19,19 @@ describe('CSS Selector Parser (Omega.DOM.parse_selector)', function () {
 		expect(groups[0].parts.length).toBe(3);
 		expect(groups[1].parts.length).toBe(1);
 		expect(groups[2].parts.length).toBe(2);
+
+		// extra spaces and commas
+		var groups = w.DOM.parse_selector('div ,div , div  ,  div  , ');
+		expect(groups.length).toBe(4);
+		var i = groups.length; while (--i) {
+			expect(groups[i].parts.length).toBe(1);
+			expect(groups[i].parts[0].rel).toBe(' ');
+			expect(groups[i].parts[0].tag_name).toBe('div');
+			expect(groups[i].parts[0].id).toBe('');
+			expect(groups[i].parts[0].classes.length).toBe(0);
+			expect(groups[i].parts[0].attributes.length).toBe(0);
+			expect(groups[i].parts[0].pseudos.length).toBe(0);
+		}
 	});
 
 	// auto parse the selector example
