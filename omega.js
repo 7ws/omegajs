@@ -95,50 +95,34 @@ var dom = Omega.DOM = {
 		// a rapid element selector based on CSS selectors.
 
 		init: function (selector, context) {
-			var start_time = new Date;
-			var results = [];
+			var start_time = new Date,
+			    groups = dom.parse_selector(selector),
+			    results = [];
 
-			// split and trim the selectors (if more than one)
-			var selectors = _map(
-				_strip(selector).split(','),
-				function (selector) { return _strip(selector) });
+			for (var g = -1, group, curr_context; group = groups[++g];) {
+				curr_context = new Omega(context || document);
 
-			// process many selectors
-			if (selectors.length > 1)
-				for (var i = -1; selectors[++i];)
-					_merge(results,
-						new dom.Query(selectors[i], context).results);
-
-			// process a single selector
-			else {
-				selector = selectors[0]
-					.replace(/\s+/g, ' ')
-					.replace(/([>+~]) /g, '$1')
-					.split(' ');
-
-				context = new Omega(context || document);
-
-				while (selector.length) {
-					var token = new dom.QueryToken(selector.shift());
+				for (var p = -1, part; part = group.parts[++p];) {
 					var elements = [];
 
-					for (var i = -1, all = []; context[++i];)
-						_merge(all, _array(
-							context[i].getElementsByTagName(token.tag_name)));
+					// collect context
+					for (var i = -1, all; curr_context[++i];) {
+						all = curr_context[i].getElementsByTagName(part.tag_name);
 
-					for (var i = -1; all[++i];)
-						dom.match(all[i], token) && elements.push(all[i]);
+						for (var j = -1; all[++j];)
+							dom.match(all[j], part) && elements.push(all[j]);
+					}
 
-					context = elements;
+					curr_context = elements;
 				}
 
-				results = elements;
+				_merge(results, elements);
 			}
 
 			this.results = [];
 
-			// clean the result set to avoid duplicates
 			for (var i = -1; results[++i];)
+				// clean the result set to avoid duplicates
 				if (this.results.indexOf(results[i]) === -1)
 					this.results.push(results[i]);
 
@@ -147,68 +131,193 @@ var dom = Omega.DOM = {
 		}
 	}),
 
-	QueryToken: _class({
-		// parse a CSS selector into a detailed object
+	parse_selector: function (selector) {
+		// parse a complete CSS selector into groups of detailed parts
 
-		TAG: /^[a-z]+/i,
-		ID: /#[\w-]+/,
-		CLASS: /\.[\w-]+/g,
-		ATTR: /\[([\w-]+)(?:\s*([~*^$]?=)\s*([^\]]+))?\]/g,
-		PSEUDO: /:([\w-]+)(?:\(([^)]+)\))?/g,
+		selector = _strip(selector, '\\s,');
 
-		init: function (selector) {
-			this.tag_name = (selector.match(this.TAG) || ['*'])[0];
-			this.id = (selector.match(this.ID) || [null])[0];
-			this.classes = _array(selector.match(this.CLASS) || []);
+		var groups = [], group, g = 0,
+		    part, p = 0,
+		    pos = -1, c,
+		    curr_token,
+		    in_quote = false,
 
-			this.attributes = [];
-			var m; while (m = this.ATTR.exec(selector))
-				this.attributes.push({
-					name: m[1], op: m[2], value: m[3] && _strip(m[3], '\\s"')
+		    // placeholders for values being parsed
+		    attr, pseudo;
+
+		while (++pos < selector.length) {
+			// shortcut to current character
+			c = selector.charAt(pos);
+
+			// create new group
+			if (!groups[g])
+				groups[g] = group = {
+					parts: [],
+					str: ''
+				};
+
+			// create new part
+			if (!group.parts[p])
+				group.parts[p] = part = {
+					rel: ' ',
+					tag_name: '',
+					id: '',
+					classes: [],
+					attributes: [],
+					pseudos: [],
+					str: ''
+				};
+
+			// toggle "quote state"
+			if (c === '"') {
+				in_quote = !in_quote;
+				continue;
+			}
+
+			// node relationship
+			else
+			if (!in_quote && !curr_token && '>+~'.indexOf(c) !== -1) {
+				part.rel = c;
+				continue;
+			}
+
+			// handle space
+			else
+			if (!in_quote && c === ' ') {
+				// breaks into a new part
+				if (curr_token !== 'attr' && part.str) {
+					p++;
+					console.log(g, p, part.str);
+					curr_token = undefined;
+				}
+
+				// ignore trailing spaces
+				continue;
+			}
+
+			// new group
+			else
+			if (!in_quote && c === ',') {
+				p = 0;
+				g++;
+				continue;
+			}
+
+			// id
+			else
+			if (!in_quote && c === '#')
+				curr_token = 'id';
+
+			// class name
+			else
+			if (!in_quote && c === '.') {
+				curr_token = 'class_name';
+				part.classes.push('');
+			}
+
+			// attribute
+			else
+			if (!in_quote && c === '[') {
+				// start attribute
+				curr_token = 'attr';
+				part.attributes.push(attr = {
+					name: '',
+					op: '',
+					value: ''
 				});
+			}
+			else
+			if (!in_quote && curr_token === 'attr'
+			&& '$*=]^~'.indexOf(c) !== -1) {
+				// end attribute
+				if (c === ']')
+					curr_token = undefined;
 
-			this.pseudos = [];
-			var m; while (m = this.PSEUDO.exec(selector))
-				this.pseudos.push({ name: m[1], param: m[2] });
+				// attribute operator
+				else
+					attr.op += c;
+			}
+
+			// pseudo classes
+			else
+			if (!in_quote && c === ':' && curr_token !== 'attr') {
+				curr_token = 'pseudo';
+				part.pseudos.push(pseudo = {
+					name: '',
+					param: ''
+				});
+			}
+
+			// append according to switch token, if any
+			else {
+				if (curr_token === 'id')
+					part.id += c;
+
+				else
+				if (curr_token === 'class_name' && part.classes.length)
+					part.classes[part.classes.length - 1] += c;
+
+				else
+				if (curr_token === 'attr')
+					attr[attr.op ? 'value' : 'name'] += c;
+
+				else
+				if (curr_token === 'pseudo')
+					pseudo.name += c;
+
+				else
+					part.tag_name += c;
+			}
+
+			// proceed adding the char
+			part.str += c;
 		}
-	}),
 
-	match: function (dom_element, token) {
-		// test an element against a QueryToken
+		// clean the groups compile the complete selectors strings
+		for (g = -1; group = groups[++g];) {
+			for (p = -1; part = group.parts[++p];)
+				group.str += (part.rel + ' ' + part.str + ' ');
+
+			group.str = _strip(group.str).replace(/\s{2,}/g, ' ');
+		}
+
+		return groups;
+	},
+
+	match: function (element, token) {
+		// test an element against a parsed selector
 
 		// id
-		if (token.id && dom_element.getAttribute('id') !== token.id.slice(1))
+		if (token.id && element.getAttribute('id') !== token.id)
 			return false;
 
 		// class name filtering
 		if (token.classes.length) {
-			var el_classes = ' ' + dom_element.className + ' ';
+			var el_classes = ' ' + element.className + ' ';
 
 			for (var i = -1; token.classes[++i];)
-				if (el_classes.indexOf(token.classes[i].slice(1)) < 0)
+				if (el_classes.indexOf(token.classes[i]) < 0)
 					return false;
 		}
 
 		// attribute filtering
-		if (token.attributes.length)
-			for (var i = -1, attr; attr = token.attributes[++i];)
-				if (
-					// element doesn't have such attribute
-					!dom_element.hasAttribute(attr.name)
+		for (var i = -1, attr; attr = token.attributes[++i];)
+			if (
+				// element doesn't have such attribute
+				!element.hasAttribute(attr.name)
 
-					// element has attribute but it doesn't match
-					|| attr.op &&
-						!dom._attr_match[attr.op](
-							dom_element.getAttribute(attr.name),
-							_strip(attr.value, ' "'))
-				)
-					return false;
+				// element has attribute but it doesn't match
+				|| attr.op &&
+					!dom._attr_match[attr.op](
+						element.getAttribute(attr.name),
+						attr.value, ' "')
+			)
+				return false;
 
 		// pseudo classes filtering
-		if (token.pseudos.length)
-			for (var i = -1, pseudo; pseudo = token.pseudos[++i];)
-				if (!dom._pseudo_match[pseudo.name](dom_element, pseudo.param))
-					return false;
+		for (var i = -1, pseudo; pseudo = token.pseudos[++i];)
+			if (!dom._pseudo_match[pseudo.name](element, pseudo.param))
+				return false;
 
 		return true;
 	},
