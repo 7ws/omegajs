@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+	<meta charset="UTF-8"/>
+	<title>&omega;.js - Tests</title>
+
+	<!-- jasmine styles -->
+	<link rel="stylesheet" type="text/css" href="lib/jasmine/jasmine.css"/>
+</head>
+<body>
+	<!-- jasmine -->
+	<script type="text/javascript" src="lib/jasmine/jasmine.js"></script>
+	<script type="text/javascript" src="lib/jasmine/jasmine-html.js"></script>
+
+	<!-- omega source -->
+	<script type="text/javascript" src="omega.js"></script>
+
+	<!-- specs -->
+	<script type="text/javascript" src="specs/dom.js"></script>
+
+	<!-- initialize -->
+	<script type="text/javascript">+function () {
+		var env = jasmine.getEnv();
+		env.updateInterval = 250;
+
+		env.addReporter(new jasmine.HtmlReporter);
+		env.execute();
+	}()</script>
+</body>
+</html>
